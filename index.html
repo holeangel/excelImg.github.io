@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel图片下载器 - 笔记ID下载状态增强版</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #06d6a0;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #ef476f;
+            --dark: #263238;
+            --light: #f8f9fa;
+            --gray: #64748b;
+            --light-gray: #e2e8f0;
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: #333;
+            min-height: 100vh;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 25px 30px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .header-left {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 2.3rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 10px auto 0;
+            line-height: 1.6;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .note-id-header {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .note-id-header h3 {
+            font-size: 1.1rem;
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+        
+        .note-id-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .note-id-input {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: none;
+            min-width: 150px;
+            font-size: 1rem;
+        }
+        
+        .note-id-btn {
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+        
+        .note-id-btn:hover {
+            background: #8e44ad;
+            transform: translateY(-2px);
+        }
+        
+        .note-id-status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            min-width: 100px;
+            text-align: center;
+            transition: var(--transition);
+        }
+        
+        .status-default {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .status-processing {
+            background: rgba(255, 209, 102, 0.3);
+            color: #e6a400;
+        }
+        
+        .status-success {
+            background: rgba(6, 214, 160, 0.3);
+            color: var(--success);
+        }
+        
+        .status-error {
+            background: rgba(231, 76, 60, 0.3);
+            color: var(--danger);
+        }
+        
+        .main-content {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1极;
+            }
+            
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .header-right {
+                width: 100%;
+                margin-top: 15px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.7rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .note-id-group {
+                width: 100%;
+            }
+            
+            .note-id-input {
+                flex: 1;
+            }
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .panel h2 {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            position: relative;
+            padding-bottom: 12px;
+        }
+        
+        .panel h2::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 2px;
+        }
+        
+        .upload-container {
+            border: 3px dashed var(--primary);
+            border-radius: 16px;
+            padding: 25px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: rgba(67, 97, 238, 0.05);
+            position: relative;
+            transition: var(--transition);
+        }
+        
+        .upload-container.drag-over {
+            background: rgba(67, 97, 238, 0.15);
+        }
+        
+        .upload-icon {
+            font-size: 4.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-download {
+            background: var(--secondary);
+            box-shadow: 0 6px 20px rgba(6, 214, 160, 0.3);
+        }
+        
+        .btn-download:hover {
+            background: #05c191;
+            box-shadow: 0 10px 25px rgba(6, 214, 160, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .file-info {
+            background: #e3f2fd;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .config-section {
+            margin: 25px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+        
+        input[type="text"], select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            transition: var(--transition);
+            background: white;
+        }
+        
+        input[type="text"]:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.2);
+        }
+        
+        .progress-container {
+            margin: 25px 0;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+        
+        .progress-bar {
+            height: 18px;
+            background: #ecf0f1;
+            border-radius: 9px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 9px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        
+        .image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 25px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .preview-item {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        
+        .preview-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .preview-number {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+            font-size: 13px;
+            padding: 5px;
+            font-weight: 600;
+        }
+        
+        .preview-error {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 10px;
+            font-weight: 600;
+        }
+        
+        .log-container {
+            background: var(--dark);
+            color: white;
+            padding: 25px;
+            border-radius: 0 0 20px 20px;
+        }
+        
+        .log {
+            height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+        
+        .log-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: flex-start;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .log-timestamp {
+            color: #bdc3c7;
+            margin-right: 15px;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+        
+        .log-message {
+            flex: 1;
+            word-break: break-word;
+        }
+        
+        .success {
+            color: var(--success);
+        }
+        
+        .warning {
+            color: var(--warning);
+        }
+        
+        .error {
+            color: var(--danger);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+        
+        .stats-container {
+            display: flex;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .stat-box {
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+            padding: 20px;
+            border-radius: 16px;
+            font-weight: 600;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-total {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
+        
+        .stat-success {
+            background: rgba(6, 214, 160, 0.1);
+            color: var(--success);
+        }
+        
+        .stat-failed {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger);
+        }
+        
+        .stat-number {
+            font-size: 2.2rem;
+            margin: 10px 0;
+            font-weight: 700;
+        }
+        
+        .server-section {
+            background: rgba(255, 209, 102, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .server-section h3 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .url-container {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .url-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--light-gray);
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+            border-radius: 8px;
+        }
+        
+        .url-item:hover {
+            background: rgba(67, 97, 238, 0.05);
+        }
+        
+        .url-index {
+            background: var(--primary);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .url-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--dark);
+            font-size: 0.95rem;
+        }
+        
+        .url-status {
+            margin-left: 15px;
+            font-size: 0.9rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: rgba(6, 214, 160, 0.2);
+            color: var(--success);
+        }
+        
+        .status-error {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+        }
+        
+        .status-pending {
+            background: rgba(255, 209, 102, 0.2);
+            color: #e6a400;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 18px 22px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.5s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-icon {
+            font-size: 1.8rem;
+            margin-right: 18px;
+        }
+        
+        .notification-success {
+            border-left: 5px solid var(--success);
+        }
+        
+        .notification-error {
+            border-left: 5px solid var(--danger);
+        }
+        
+        .notification-content h4 {
+            margin-bottom: 8px;
+            font-size: 1.3rem;
+        }
+        
+        .notification-content p {
+            color: var(--gray);
+            line-height: 1.6;
+        }
+        
+        .hint {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--light-gray);
+        }
+        
+        .server-test-section {
+            background: rgba(67, 97, 238, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .server-test-section h3 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .server-test-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .server-test-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+        
+        .server-test-btn i {
+            margin-right: 10px;
+        }
+        
+        .server-status {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .server-up {
+            background: rgba(6, 214, 160, 0.2);
+            color: var(--success);
+        }
+        
+        .server-down {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1><i class="fas fa-file-excel"></i> Excel图片下载器</h1>
+                <p class="subtitle">笔记ID下载状态增强版</p>
+            </div>
+            
+            <div class="header-right">
+                <div class="note-id-header">
+                    <h3><i class="fas fa-id-card"></i> 笔记ID下载</h3>
+                    <div class="note-id-group">
+                        <input type="text" class="note-id-input" id="noteIdInput" placeholder="输入笔记ID">
+                        <button class="note-id-btn" id="downloadByIdBtn">
+                            <i class="fas fa-download"></i> 下载笔记图片
+                        </button>
+                        <div class="note-id-status status-default" id="noteIdStatus">
+                            未开始
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="panel">
+                <h2><i class="fas fa-cloud-upload-alt"></i> 上传Excel文件</h2>
+                <p>支持 .xlsx 和 .xls 格式的文件</p>
+                
+                <div class="upload-container" id="dropArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <p>拖放Excel文件到此处或点击下方按钮选择文件</p>
+                    <button class="btn" id="selectBtn">
+                        <i class="fas fa-folder-open"></i> 选择Excel文件
+                    </button>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls">
+                </div>
+                
+                <div class="file-info" id="fileInfo">
+                    <i class="fas fa-info-circle"></i> 未选择文件。请上传包含图片链接的Excel文件
+                </div>
+                
+                <div class="config-section">
+                    <div class="form-group">
+                        <label for="columnName"><i class="fas fa-columns"></i> 图片链接列名称</label>
+                        <input type="text" id="columnName" placeholder="请输入包含图片链接的列名" value="仿写后笔记图片">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="imageType"><i class="fas fa-file-image"></i> 图片命名方式</label>
+                        <select id="imageType">
+                            <option value="jpg">JPG</option>
+                            <option value="png">PNG</option>
+                            <option value="gif">GIF</option>
+                            <option value="webp">WEBP</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-download" id="downloadBtn">
+                        <i class="fas fa-download"></i> 下载全部图片
+                    </button>
+                </div>
+                
+                <div class="server-section">
+                    <h3><i class="fas fa-server"></极> 服务器中转配置</h3>
+                    <p>所有图片将通过服务器中转下载</p>
+                    <div class="form-group">
+                        <label for="serverEndpoint"><i class="fas fa-link"></i> 服务器中转地址</label>
+                        <input type="text" id="serverEndpoint" placeholder="请输入服务器中转地址" value="https://dimg.wenchen.dpdns.org">
+                    </div>
+                    <p class="hint"><i class="fas fa-lightbulb"></i> 确保您的服务器已部署图片中转服务</p>
+                </div>
+                
+                <div class="server-test-section">
+                    <h3><i class="fas fa-wifi"></i> 服务器连通性测试</h3>
+                    <p>测试服务器是否正常工作</p>
+                    <button class="server-test-btn" id="testServerBtn">
+                        <i class="fas fa-plug"></i> 测试服务器连通性
+                    </button>
+                    <div class="server-status" id="serverStatus">
+                        点击上方按钮测试服务器状态
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2><i class="fas fa-chart-bar"></i> 处理状态</h2>
+                
+                <div class="stats-container">
+                    <div class="stat-box stat-total">
+                        <div>总计</div>
+                        <div class="stat-number" id="statTotal">0</div>
+                        <div>图片</div>
+                    </div>
+                    
+                    <div class="stat-box stat-success">
+                        <div>成功</div>
+                        <div class="stat-number" id="statSuccess">0</div>
+                        <div>下载</div>
+                    </div>
+                    
+                    <div class="stat-box stat-failed">
+                        <div>失败</div>
+                        <div class="stat-number" id="statFailed">0</div>
+                        <div>URL</div>
+                    </div>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span>处理进度</span>
+                        <span id="progressText">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 30px;"><i class="fas fa-images"></i> 图片预览</h3>
+                <div class="image-preview" id="imagePreview">
+                    <div class="empty-state">
+                        <i class="fas fa-image"></i>
+                        <p>图片预览将在处理后显示</p>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 30px;"><i class="fas fa-list"></i> URL列表</h3>
+                <div class="url-container" id="urlContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-link"></i>
+                        <p>URL列表将在处理后显示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="log-container">
+            <div class="log-title">
+                <span><i class="fas fa-terminal"></i> 详细处理日志</span>
+                <span class="status-badge" id="statusBadge">就绪</span>
+            </div>
+            <div class="log" id="log">
+                <div class="log-entry">
+                    <span class="log-timestamp">[系统]</span>
+                    <span class="log-message">应用程序已就绪，请上传Excel文件</span>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 Excel图片下载器 | 笔记ID下载状态增强版</p>
+        </footer>
+    </div>
+
+    <div class="notification" id="notification">
+        <div class="notification-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="notification-content">
+            <h4>操作成功</h4>
+            <p>文件已成功上传</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM元素
+        const fileInput = document.getElementById('fileInput');
+        const selectBtn = document.getElementById('selectBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const dropArea = document.getElementById('dropArea');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const imagePreview = document.getElementById('imagePreview');
+        const log = document.getElementById('log');
+        const columnNameInput = document.getElementById('columnName');
+        const fileInfo = document.getElementById('fileInfo');
+        const statusBadge = document.getElementById('statusBadge');
+        const urlContainer = document.getElementById('urlContainer');
+        const statTotal = document.getElementById('statTotal');
+        const statSuccess = document.getElementById('statSuccess');
+        const statFailed = document.getElementById('statFailed');
+        const imageTypeSelect = document.getElementById('imageType');
+        const serverEndpointInput = document.getElementById('serverEndpoint');
+        const notification = document.getElementById('notification');
+        const testServerBtn = document.getElementById('testServerBtn');
+        const serverStatus = document.getElementById('serverStatus');
+        const noteIdInput = document.getElementById('noteIdInput');
+        const downloadByIdBtn = document.getElementById('downloadByIdBtn');
+        const noteIdStatus = document.getElementById('noteIdStatus');
+
+        // 全局变量
+        let excelData = null;
+        let imageUrls = [];
+        const MAX_RETRY_ATTEMPTS = 3;
+        const REQUEST_TIMEOUT = 30000; // 30秒超时
+        let isDownloading = false;
+        let activeRequests = 0;
+        const MAX_CONCURRENT_REQUESTS = 3;
+        let fileUploadStatus = 'not_uploaded';
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置事件监听器
+            selectBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            downloadBtn.addEventListener('click', downloadImages);
+            downloadByIdBtn.addEventListener('click', downloadImagesById);
+            testServerBtn.addEventListener('click', testServerConnectivity);
+            
+            // 设置拖放区域
+            setupDragAndDrop();
+            
+            // 初始化日志
+            addLog('应用程序已初始化，所有按钮功能正常', 'success');
+        });
+
+        // 设置拖放功能
+        function setupDragAndDrop() {
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('drag-over');
+            });
+            
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.classList.remove('drag-over');
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect({target: fileInput});
+                }
+            });
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 重置上传状态
+            fileUploadStatus = 'uploading';
+            addLog(`开始处理文件: ${file.name}`, 'success');
+            
+            // 验证文件类型
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                addLog('请选择Excel文件（.xlsx 或 .xls 格式）', 'error');
+                showNotification('文件类型错误', '请选择Excel文件（.xlsx 或 .xls 格式）', 'error');
+                fileUploadStatus = 'failed';
+                return;
+            }
+            
+            // 更新文件信息
+            fileInfo.innerHTML = `
+                <i class="fas fa-file-excel"></i> 
+                <strong>已选择文件:</strong> ${file.name}<br>
+                <strong>大小:</strong> ${formatFileSize(file.size)}<br>
+                <strong>类型:</strong> ${file.type || 'Excel 文档'}
+            `;
+            
+            addLog(`已选择文件: ${file.name}`, 'success');
+            statusBadge.textContent = '正在解析...';
+            statusBadge.style.background = '#4361ee';
+            showNotification('文件已上传', '开始解析Excel文件', 'success');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // 获取第一张工作表
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // 转换为JSON
+                    excelData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (excelData.length === 0) {
+                        addLog('Excel文件中没有找到数据', 'error');
+                        statusBadge.textContent = '无数据';
+                        statusBadge.style.background = '#ef476f';
+                        showNotification('解析失败', 'Excel文件中没有找到数据', 'error');
+                        fileUploadStatus = 'failed';
+                        return;
+                    }
+                    
+                    // 显示列名
+                    const columnNames = Object.keys(excelData[0]);
+                    addLog(`找到 ${excelData.length} 行数据`, 'success');
+                    addLog(`包含列: ${columnNames.join(', ')}`, 'success');
+                    
+                    // 标记文件已成功上传
+                    fileUploadStatus = 'uploaded';
+                    
+                    // 启用下载按钮
+                    downloadBtn.disabled = false;
+                    downloadByIdBtn.disabled = false;
+                    statusBadge.textContent = '准备下载';
+                    statusBadge.style.background = '#06d6a0';
+                    showNotification('解析成功', 'Excel文件已解析完成，准备下载图片', 'success');
+                    
+                } catch (error) {
+                    addLog(`解析Excel失败: ${error.message}`, 'error');
+                    statusBadge.textContent = '解析错误';
+                    statusBadge.style.background = '#ef476f';
+                    showNotification('解析失败', `解析Excel时出错: ${极error.message}`, 'error');
+                    fileUploadStatus = 'failed';
+                }
+            };
+            
+            reader.onerror = function() {
+                addLog('读取文件失败', 'error');
+                statusBadge.textContent = '读取错误';
+                status极Badge.style.background = '#ef476f';
+                showNotification('读取失败', '无法读取文件内容', 'error');
+                fileUploadStatus = 'failed';
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 测试服务器连通性
+        async function testServerConnectivity() {
+            const serverEndpoint = serverEndpointInput.value.trim();
+            if (!serverEndpoint) {
+                addLog('请先输入服务器中转地址', 'error');
+                showNotification('配置错误', '请先输入服务器中转地址', 'error');
+                return;
+            }
+            
+            testServerBtn.disabled = true;
+            serverStatus.textContent = "正在测试服务器连通性...";
+            serverStatus.className = "server-status";
+            addLog(`开始测试服务器连通性: ${serverEndpoint}`, 'success');
+            
+            try {
+                // 发送测试请求
+                const response = await fetch(serverEndpoint, {
+                    method: 'GET',
+                    headers: {
+                        'X-Test-Request': 'true'
+                    }
+                });
+                
+                if (response.ok) {
+                    serverStatus.textContent = "服务器正常响应";
+                    serverStatus.className = "server-status server-up";
+                    addLog(`服务器测试成功: ${response.status} ${response.statusText}`, 'success');
+                    showNotification('服务器正常', '服务器已成功响应测试请求', 'success');
+                } else {
+                    serverStatus.textContent = `服务器错误: ${response.status} ${response.statusText}`;
+                    serverStatus.className = "server-status server-down";
+                    addLog(`服务器测试失败: ${response.status} ${response.statusText}`, 'error');
+                    showNotification('服务器错误', `服务器返回错误: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                serverStatus.textContent = "无法连接到服务器";
+                serverStatus.className = "server-status server-down";
+                addLog(`服务器测试失败: ${error.message}`, 'error');
+                showNotification('连接失败', `无法连接到服务器: ${error.message}`, 'error');
+            }
+            
+            testServerBtn.disabled = false;
+        }
+
+        // 下载图片
+        function downloadImages() {
+            if (isDownloading) {
+                addLog('下载正在进行中，请稍候...', 'warning');
+                return;
+            }
+            
+            // 检查文件上传状态
+            if (fileUploadStatus !== 'uploaded') {
+                addLog('请先上传Excel文件', 'error');
+                showNotification('操作错误', '请先上传Excel文件', 'error');
+                return;
+            }
+            
+            const columnName = columnNameInput.value.trim();
+            if (!columnName) {
+                addLog('请指定图片链接列名称', 'error');
+                showNotification('配置错误', '请指定图片链接列名称', 'error');
+                return;
+            }
+            
+            if (!excelData) {
+                addLog('Excel数据未正确加载，请重新上传文件', 'error');
+                showNotification('数据错误', 'Excel数据未正确加载，请重新上传文件', 'error');
+                return;
+            }
+            
+            const serverEndpoint = serverEndpointInput.value.trim();
+            if (!serverEndpoint) {
+                addLog('请指定服务器中转地址', 'error');
+                showNotification('配置错误', '请指定服务器中转地址', 'error');
+                return;
+            }
+            
+            // 重置状态
+            imageUrls = [];
+            downloadCounter = 0;
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            imagePreview.innerHTML = '<div class="empty-state"><i class="fas fa-image"></i><p>图片预览将在处理后显示</p></div>';
+            urlContainer.innerHTML = '<div class="empty-state"><i class="fas fa-link"></i><p>URL列表将在处理后显示</p></div>';
+            statTotal.textContent = "0";
+            statSuccess.textContent = "0";
+            statFailed.textContent = "0";
+            activeRequests = 0;
+            
+            downloadBtn.disabled = true;
+            isDownloading = true;
+            statusBadge.textContent = '处理中';
+            statusBadge.style.background = '#4361ee';
+            addLog('开始处理数据...');
+            showNotification('处理开始', '开始提取图片链接并下载', 'success');
+            
+            // 提取图片URL
+            try {
+                let index = 1;
+                excelData.forEach(row => {
+                    if (row[columnName]) {
+                        // 将单元格内容转换为字符串
+                        const cellContent = row[columnName].toString();
+                        
+                        // 使用正则表达式提取所有URL
+                        const urlRegex = /https?:\/\/[^\s,]+/g;
+                        const urls = cellContent.match(urlRegex) || [];
+                        
+                        urls.forEach(url => {
+                            if (url && url.startsWith('http')) {
+                                imageUrls.push({
+                                    index: index,
+                                    url: url,
+                                    status: 'pending',
+                                    retries: 0
+                                });
+                                index++;
+                            }
+                        });
+                    }
+                });
+                
+                if (imageUrls.length === 0) {
+                    addLog(`在"${columnName}"列中未找到有效的图片链接`, 'error');
+                    statusBadge.textContent = '无链接';
+                    statusBadge.style.background = '#ef476f';
+                    showNotification('处理失败', `在"${columnName}"列中未找到有效的图片链接`, 'error');
+                    downloadBtn.disabled = false;
+                    isDownloading = false;
+                    return;
+                }
+                
+                statTotal.textContent = imageUrls.length;
+                addLog(`找到 ${imageUrls.length} 个图片链接`, 'success');
+                addLog(`使用服务器中转地址: ${serverEndpoint}`, 'success');
+                
+                // 显示URL列表
+                displayUrlList();
+                
+                // 开始下载
+                downloadAllImages(serverEndpoint);
+                
+            } catch (error) {
+                addLog(`处理数据时出错: ${error.message}`, 'error');
+                statusBadge.textContent = '失败';
+                statusBadge.style.background = '#ef476f';
+                showNotification('处理失败', `处理数据时出错: ${error.message}`, 'error');
+                downloadBtn.disabled = false;
+                isDownloading = false;
+            }
+        }
+
+        // 根据笔记ID下载图片
+        function downloadImagesById() {
+            if (isDownloading) {
+                addLog('下载正在进行中，请稍候...', 'warning');
+                return;
+            }
+            
+            const noteId = noteIdInput.value.trim();
+            if (!noteId) {
+                addLog('请输入笔记ID', 'error');
+                showNotification('输入错误', '请输入笔记ID', 'error');
+                return;
+            }
+            
+            // 检查文件上传状态
+            if (fileUploadStatus !== 'uploaded') {
+                addLog('请先上传Excel文件', 'error');
+                showNotification('操作错误', '请先上传Excel文件', 'error');
+                return;
+            }
+            
+            const columnName = columnNameInput.value.trim();
+            if (!columnName) {
+                addLog('请指定图片链接列名称', 'error');
+                showNotification('配置错误', '请指定图片链接列名称', 'error');
+                return;
+            }
+            
+            const serverEndpoint = serverEndpointInput.value.trim();
+            if (!serverEndpoint) {
+                addLog('请指定服务器中转地址', 'error');
+                showNotification('配置错误', '请指定服务器中转地址', 'error');
+                return;
+            }
+            
+            // 更新笔记ID下载状态
+            noteIdStatus.textContent = '下载中';
+            noteIdStatus.className = 'note-id-status status-processing';
+            
+            // 重置状态
+            imageUrls = [];
+            downloadCounter = 0;
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+            imagePreview.innerHTML = '<div class="empty-state"><i class="fas fa-image"></i><p>图片预览将在处理后显示</p></div>';
+            urlContainer.innerHTML = '<div class="empty-state"><i class="fas fa-link"></i><p>URL列表将在处理后显示</p></div>';
+            statTotal.textContent = "0";
+            statSuccess.textContent = "0";
+            statFailed.textContent = "0";
+            activeRequests = 0;
+            
+            downloadByIdBtn.disabled = true;
+            isDownloading = true;
+            statusBadge.textContent = '处理中';
+            statusBadge.style.background = '#4361ee';
+            addLog(`开始处理笔记ID: ${noteId}...`);
+            showNotification('处理开始', `开始处理笔记ID: ${noteId}`, 'success');
+            
+            // 提取图片URL
+            try {
+                let index = 1;
+                excelData.forEach(row => {
+                    if (row['笔记ID'] && row['笔记ID'].toString() === noteId && row[columnName]) {
+                        // 将单元格内容转换为字符串
+                        const cellContent = row[columnName].toString();
+                        
+                        // 使用正则表达式提取所有URL
+                        const urlRegex = /https?:\/\/[^\s,]+/g;
+                        const urls = cellContent.match(urlRegex) || [];
+                        
+                        urls.forEach(url => {
+                            if (url && url.startsWith('http')) {
+                                imageUrls.push({
+                                    index: index,
+                                    url: url,
+                                    status: 'pending',
+                                    retries: 0
+                                });
+                                index++;
+                            }
+                        });
+                    }
+                });
+                
+                if (imageUrls.length === 0) {
+                    addLog(`在笔记ID ${noteId} 中未找到有效的图片链接`, 'error');
+                    statusBadge.textContent = '无链接';
+                    statusBadge.style.background = '#ef476f';
+                    showNotification('处理失败', `在笔记ID ${noteId} 中未找到有效的图片链接`, 'error');
+                    downloadByIdBtn.disabled = false;
+                    isDownloading = false;
+                    
+                    // 更新笔记ID下载状态
+                    noteIdStatus.textContent = '未成功';
+                    noteIdStatus.className = 'note-id-status status-error';
+                    return;
+                }
+                
+                statTotal.textContent = imageUrls.length;
+                addLog(`找到 ${imageUrls.length} 个图片链接`, 'success');
+                addLog(`使用服务器中转地址: ${serverEndpoint}`, 'success');
+                
+                // 显示URL列表
+                displayUrlList();
+                
+                // 开始下载
+                downloadAllImages(serverEndpoint);
+                
+            } catch (error) {
+                addLog(`处理数据时出错: ${error.message}`, 'error');
+                statusBadge.textContent = '失败';
+                statusBadge.style.background = '#ef476f';
+                showNotification('处理失败', `处理数据时出错: ${error.message}`, 'error');
+                downloadByIdBtn.disabled = false;
+                isDownloading = false;
+                
+                // 更新笔记ID下载状态
+                noteIdStatus.textContent = '未成功';
+                noteIdStatus.className = 'note-id-status status-error';
+            }
+        }
+
+        // 显示URL列表
+        function displayUrlList() {
+            urlContainer.innerHTML = '';
+            
+            imageUrls.forEach(item => {
+                const urlItem = document.createElement('div');
+                urlItem.className = 'url-item';
+                
+                const indexSpan = document.createElement('div');
+                indexSpan.className = 'url-index';
+                indexSpan.textContent = item.index;
+                
+                const urlText = document.createElement('div');
+                urlText.className = 'url-text';
+                urlText.textContent = item.url;
+                
+                const statusSpan = document.createElement('div');
+                statusSpan.className = 'url-status status-pending';
+                statusSpan.id = `url-status-${item.index}`;
+                statusSpan.textContent = '等待中';
+                
+                urlItem.appendChild(indexSpan);
+                urlItem.appendChild(urlText);
+                urlItem.appendChild(statusSpan);
+                
+                urlContainer.appendChild(urlItem);
+            });
+        }
+
+        // 下载所有图片
+        async function downloadAllImages(serverEndpoint) {
+            statusBadge.textContent = '服务器中转中';
+            statusBadge.style.background = '#4361ee';
+            addLog(`开始通过服务器中转下载图片 (共 ${imageUrls.length} 个URL)...`);
+            
+            let successCount = 0;
+            let failedCount = 0;
+            const imageType = imageTypeSelect.value;
+            
+            for (let i = 0; i < imageUrls.length; i++) {
+                const item = imageUrls[i];
+                const { index, url } = item;
+                const filename = `${index}.${imageType}`;
+                
+                let downloadSuccess = false;
+                
+                // 重试机制
+                for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+                    try {
+                        // 通过服务器中转下载
+                        const response = await fetch(serverEndpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                url: url,
+                                format: imageType
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP错误: ${response.status}`);
+                        }
+                        
+                        const blob = await response.blob();
+                        
+                        // 检查是否为图片
+                        if (!blob.type.startsWith('image/')) {
+                            throw new Error('返回的内容不是图片');
+                        }
+                        
+                        // 创建下载链接
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = filename;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        // 释放URL对象
+                        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+                        
+                        addLog(`已下载: ${filename} (尝试 ${attempt}/${MAX_RETRY_ATTEMPTS})`, 'success');
+                        successCount++;
+                        downloadSuccess = true;
+                        
+                        // 更新状态
+                        updateUrlStatus(index, 'success');
+                        
+                        // 创建预览 (仅限前6个)
+                        if (i < 6) {
+                            createImagePreview(url, index, 'success');
+                        }
+                        
+                        break; // 成功则跳出重试循环
+                        
+                    } catch (error) {
+                        if (attempt < MAX_RETRY_ATTEMPTS) {
+                            addLog(`下载失败: ${url} - 尝试 ${attempt}/${MAX_RETRY_ATTEMPTS} - ${error.message}`, 'warning');
+                            // 等待一段时间后重试
+                            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                        } else {
+                            addLog(`下载失败: ${url} - 最终失败 - ${error.message}`, 'error');
+                        }
+                    }
+                }
+                
+                if (!downloadSuccess) {
+                    failedCount++;
+                    updateUrlStatus(index, 'error');
+                    
+                    // 创建错误预览
+                    if (i < 6) {
+                        createImagePreview(url, index, 'error');
+                    }
+                }
+                
+                // 更新进度
+                const progress = Math.floor(((i + 1) / imageUrls.length) * 100);
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `${progress}%`;
+                
+                // 更新统计
+                statSuccess.textContent = successCount;
+                statFailed.textContent = failedCount;
+            }
+            
+            // 完成处理
+            if (successCount > 0) {
+                statusBadge.textContent = '部分成功';
+                statusBadge.style.background = '#ffd166';
+                addLog(`处理完成！成功下载 ${successCount}/${imageUrls.length} 张图片`, 'warning');
+                showNotification('处理完成', `成功下载 ${successCount}/${imageUrls.length} 张图片`, 'success');
+                
+                // 更新笔记ID下载状态
+                noteIdStatus.textContent = '成功';
+                noteIdStatus.className = 'note-id-status status-success';
+            } else {
+                statusBadge.textContent = '全部失败';
+                statusBadge.style.background = '#ef476f';
+                addLog(`所有图片下载失败`, 'error');
+                showNotification('处理失败', '所有图片下载失败', 'error');
+                
+                // 更新笔记ID下载状态
+                noteIdStatus.textContent = '未成功';
+                noteIdStatus.className = 'note-id-status status-error';
+            }
+            
+            downloadBtn.disabled = false;
+            downloadByIdBtn.disabled = false;
+            isDownloading = false;
+        }
+
+        // 更新URL状态
+        function updateUrlStatus(index, status) {
+            const statusSpan = document.getElementById(`url-status-${index}`);
+            if (!statusSpan) return;
+            
+            statusSpan.textContent = status === 'success' ? '成功' : '失败';
+            statusSpan.className = 'url-status ' + 
+                (status === 'success' ? 'status-success' : 'status-error');
+        }
+
+        // 创建图片预览
+        function createImagePreview(url, number, status = 'success') {
+            // 清除空状态
+            if (imagePreview.querySelector('.empty-state')) {
+                imagePreview.innerHTML = '';
+            }
+            
+            const previewItem = document.createElement('div');
+            previewItem.className = 'preview-item';
+            
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = `图片 ${number}`;
+            img.onerror = function() {
+                if (status !== 'error') {
+                    this.src = 'https://via.placeholder.com/100x100?text=图片不可用';
+                }
+            };
+            
+            const numberBadge = document.createElement('div');
+            numberBadge.className = 'preview-number';
+            numberBadge.textContent = number;
+            
+            previewItem.appendChild(img);
+            previewItem.appendChild(numberBadge);
+            
+            if (status === 'error') {
+                const errorBadge = document.createElement('div');
+                errorBadge.className = 'preview-error';
+                errorBadge.textContent = '下载失败';
+                previewItem.appendChild(errorBadge);
+            }
+            
+            imagePreview.appendChild(previewItem);
+        }
+
+        // 添加日志记录
+        function addLog(message, type = '') {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const timestamp = `[${hours}:${minutes}:${seconds}]`;
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'log-timestamp';
+            timestampSpan.textContent = timestamp;
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.className = 'log-message';
+            messageSpan.textContent = message;
+            
+            logEntry.appendChild(timestampSpan);
+            logEntry.appendChild(messageSpan);
+            
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // 显示通知
+        function showNotification(title, message, type) {
+            const notification = document.getElementById('notification');
+            const icon = notification.querySelector('.notification-icon');
+            const content = notification.querySelector('.notification-content');
+            
+            // 设置通知内容
+            content.querySelector('h4').textContent = title;
+            content.querySelector('p').textContent = message;
+            
+            // 设置样式
+            notification.className = 'notification';
+            if (type === 'success') {
+                notification.classList.add('notification-success');
+                icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+            } else {
+                notification.classList.add('notification-error');
+                icon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+            }
+            
+            // 显示通知
+            notification.classList.add('show');
+            
+            // 3秒后隐藏通知
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + " bytes";
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+            else return (bytes / 1048576).toFixed(1) + " MB";
+        }
+    </script>
+</body>
+</html>
